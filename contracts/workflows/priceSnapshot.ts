@@ -1,44 +1,27 @@
-import { Workflow } from "@chainlink/cre";
-import { ethers } from "ethers";
+export async function handler(request: any) {
+  const token = request.body.token;
 
-const FEED = "0x694AA1769357215DE4FAC081bf1f309aDC325306";
+  // STEP 1: EVM READ (Chainlink Data Feed)
+  const priceData = await EVM.read({
+    address: "0x694AA1769357215DE4FAC081bf1f309aDC325306", // ETH/USD Sepolia
+    function: "latestRoundData"
+  });
 
-const abi = [
-  "function latestRoundData() view returns (uint80,int256,uint256,uint256,uint80)"
-];
+  const price = priceData.answer;
+  const blockNumber = priceData.updatedAt;
 
-export const workflow = new Workflow({
-  name: "priceSnapshot",
+  // STEP 2: EVM WRITE (your contract)
+  const result = await EVM.write({
+    address: "0x84d76c5880Bc136815EB7c2BfC31A0A316024FAa",
+    function: "snapshot",
+    args: [token, price, blockNumber]
+  });
 
-  trigger: async (ctx) => {
-    return ctx.request.body;
-  },
-
-  run: async (ctx, input) => {
-
-    const provider = ctx.evm.provider("sepolia");
-
-    const feed = new ethers.Contract(FEED, abi, provider);
-
-    const data = await feed.latestRoundData();
-
-    const price = data[1];
-    const blockNumber = await provider.getBlockNumber();
-
-    const contract = ctx.evm.contract({
-      address: process.env.SNAPSHOT_CONTRACT!,
-      abi: [
-        "function snapshot(string,uint256,uint256) external"
-      ],
-      chain: "sepolia"
-    });
-
-    await contract.write.snapshot([
-      input.token,
-      price.toString(),
-      blockNumber
-    ]);
-
-    return { token: input.token, price: price.toString(), blockNumber };
-  }
-});
+  return {
+    success: true,
+    token,
+    price,
+    blockNumber,
+    tx: result.txHash
+  };
+}
