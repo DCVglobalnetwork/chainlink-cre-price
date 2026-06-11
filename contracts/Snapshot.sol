@@ -2,74 +2,54 @@
 pragma solidity ^0.8.24;
 
 /**
- * @title ISnapshot
- * @notice Defines the standard data structure for oracle-derived asset snapshots
- * @dev Used to represent off-chain → on-chain verified data in CRE workflows
+ * @title Snapshot
+ * @notice Minimal oracle snapshot storage for CRE workflows
+ * @dev Designed to accept writes only from a trusted workflow/forwarder
  */
-interface ISnapshot {
+contract Snapshot {
 
-    /**
-     * @notice Oracle snapshot record representing a single asset state update
-     * @param token Asset identifier (e.g. ETH, BTC)
-     * @param price Latest USD price from Chainlink Data Feed
-     * @param blockNumber Block number when oracle data was last updated
-     * @param timestamp Timestamp when snapshot was written on-chain
-     */
     struct Record {
         string token;
         uint256 price;
         uint256 blockNumber;
         uint256 timestamp;
     }
-}
 
-/**
- * @title Snapshot
- * @notice Minimal oracle ingestion contract for CRE demonstration
- * @dev Stores Chainlink Data Feed-derived values on-chain via authorized write access
- */
-contract Snapshot {
+    /// @notice Latest oracle snapshot stored on-chain
+    Record public lastRecord;
 
-    /// @notice Stores the most recent oracle snapshot
-    ISnapshot.Record public lastRecord;
-
-    /// @notice Contract owner (authorized writer for snapshot updates)
-    address public owner;
+    /// @notice Address authorized to write snapshots (CRE forwarder / workflow)
+    address public trustedForwarder;
 
     /**
-     * @notice Restricts function execution to contract owner only
+     * @notice Restricts access to CRE workflow/forwarder only
      */
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Not owner");
+    modifier onlyForwarder() {
+        require(msg.sender == trustedForwarder, "Not authorised");
         _;
     }
 
     /**
-     * @notice Sets deployer as contract owner
-     * @dev Used to control write access for snapshot updates
+     * @notice Sets the trusted forwarder at deployment
+     * @dev In CRE this would be the workflow execution identity
      */
-    constructor() {
-        owner = msg.sender;
+    constructor(address _trustedForwarder) {
+        trustedForwarder = _trustedForwarder;
     }
 
     /**
-     * @notice Writes an oracle-derived price snapshot to storage
-     * @dev Intended to be called by CRE workflow after:
-     *      1. Reading Chainlink Data Feed (EVM Read)
-     *      2. Extracting latest price + update block number
-     *      3. Executing EVM Write step
-     *
+     * @notice Stores oracle-derived snapshot data
      * @param token Asset symbol (e.g. ETH)
-     * @param price Latest Chainlink price feed value (USD)
-     * @param blockNumber Block number from last Chainlink update
+     * @param price Chainlink price feed value (USD)
+     * @param blockNumber Block number of oracle update
      */
     function snapshot(
         string memory token,
         uint256 price,
         uint256 blockNumber
-    ) external onlyOwner {
+    ) external onlyForwarder {
 
-        lastRecord = ISnapshot.Record({
+        lastRecord = Record({
             token: token,
             price: price,
             blockNumber: blockNumber,
