@@ -12,7 +12,7 @@ export async function handler(request: any) {
 
   // STEP 2: EVM WRITE (your contract)
   const result = await EVM.write({
-    address: "0x84d76c5880Bc136815EB7c2BfC31A0A316024FAa",
+    address: "0xA90e3a28c926363f65d4c64430fdd65b691397f1",
     function: "snapshot",
     args: [token, price, blockNumber]
   });
