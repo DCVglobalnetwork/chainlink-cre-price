@@ -1,22 +1,50 @@
-# CRE Price Snapshot System
+# UK Property CRE Workflow
 
-This project demonstrates a Chainlink CRE workflow that:
+This project demonstrates a Chainlink CRE workflow for verifying off-chain data and writing it on-chain.
 
-1. Accepts a token input via HTTP
-2. Reads Chainlink Data Feed (Sepolia ETH/USD)
-3. Retrieves latest price and block number
-4. Writes snapshot data on-chain via smart contract
+---
 
-## Contract
+## Flow
 
-Deployed on Sepolia:
-`0xYourDeployedContractAddress`
+HTTP Request:
+{ "token": "ETH" }
 
-## Workflow
+↓
 
-- EVM Read: Chainlink Price Feed
-- EVM Write: Snapshot.sol
+Chainlink Data Feed (Sepolia ETH/USD)
 
-## Run Command (CRE)
+↓
 
-cre workflow simulate priceSnapshot --broadcast
+EVM Write to Snapshot contract
+
+---
+
+## Smart Contract
+
+Stores:
+- token
+- price (from Chainlink Data Feed)
+- blockNumber (oracle update block)
+- timestamp
+
+---
+
+## Deploy (Sepolia)
+
+Deploy `Snapshot.sol` using Remix:
+- Network: Sepolia
+- Constructor: your wallet address
+
+---
+
+## Run CRE Workflow
+
+cre workflow simulate my-workflow --broadcast
+
+---
+
+## Environment
+
+Copy `.env.example` and set:
+- CONTRACT_ADDRESS
+- RPC_URL
